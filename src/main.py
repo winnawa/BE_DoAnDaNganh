@@ -11,7 +11,7 @@ def hello_world():
         print(coll)
     return 'hello world'
 
-@app.route('/login', methods=["GET"])
+@app.route('/login', methods=["POST"])
 def login():
     
     try:
