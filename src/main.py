@@ -2,11 +2,10 @@ import random
 import time
 from flask import request
 from src.error import APIError, BadRequestError, ErrorMapper, NotFoundError, UnauthorizedError
-from src import db, app, client
+from src import db, app, client, socketio
 import sys 
 
-import eventlet
-import socketio
+
 
 
 @app.route('/')
@@ -240,7 +239,7 @@ def message(client, feed_id, payload):
     # The feed_id parameter identifies the feed, and the payload parameter has
     # the new value.
     print('Feed {0} received new value: {1}'.format(feed_id, payload))
-
+    socketio.emit('new_temp', {'message': payload})
 
 # Setup the callback functions defined above.
 client.on_connect    = connected
@@ -258,3 +257,6 @@ print('Publishing a new message every 10 seconds (press Ctrl-C to quit)...')
 #     print('Publishing {0} to DemoFeed.'.format(value))
 #     # client.publish('DemoFeed', value)
 #     time.sleep(10)
+
+
+
