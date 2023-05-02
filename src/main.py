@@ -1,9 +1,13 @@
+import random
+import time
 from flask import request
 from src.error import APIError, BadRequestError, ErrorMapper, NotFoundError, UnauthorizedError
 from src import db, app, client
-import random
-import sys
-import time
+import sys 
+
+import eventlet
+import socketio
+
 
 @app.route('/')
 def hello_world():
@@ -224,7 +228,7 @@ def connected(client):
     # calls against it easily.
     print('Connected to Adafruit IO!  Listening for DemoFeed changes...')
     # Subscribe to changes on a feed named DemoFeed.
-    client.subscribe('temp')
+    client.subscribe('smart-home.temp')
 
 def disconnected(client):
     # Disconnected function will be called when the client disconnects.
@@ -237,6 +241,7 @@ def message(client, feed_id, payload):
     # the new value.
     print('Feed {0} received new value: {1}'.format(feed_id, payload))
 
+
 # Setup the callback functions defined above.
 client.on_connect    = connected
 client.on_disconnect = disconnected
@@ -244,3 +249,12 @@ client.on_message    = message
 
 # Connect to the Adafruit IO server.
 client.connect()
+
+client.loop_background()
+# Now send new values every 10 seconds.
+print('Publishing a new message every 10 seconds (press Ctrl-C to quit)...')
+# while True:
+#     value = random.randint(0, 100)
+#     print('Publishing {0} to DemoFeed.'.format(value))
+#     # client.publish('DemoFeed', value)
+#     time.sleep(10)
