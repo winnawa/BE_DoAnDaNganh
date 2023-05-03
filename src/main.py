@@ -4,7 +4,7 @@ from flask import request
 from src.error import APIError, BadRequestError, ErrorMapper, NotFoundError, UnauthorizedError
 from src import db, app, client, socketio
 import sys 
-
+import requests
 
 
 
@@ -215,6 +215,90 @@ def updateLampDetail(id):
         return ErrorMapper.mappError(error)
    
 
+@app.route('/logs', methods=["GET"])
+def getLogs():
+    try:
+        existeLogs = db.Log.find({})
+
+        return {
+            "message": "get logs successfully",
+            "data": [   {
+                
+                            "id": str(element["_id"]),
+                            "content": element["content"],
+                            "time": element["time"],
+                        } for element in existeLogs]
+        }
+        
+    except APIError as error:
+        return ErrorMapper.mappError(error) 
+
+@app.route('/logs', methods=["POST"])
+def createLog():
+    
+    try:
+        data = request.get_json()
+        content = data['content']
+        time = data['time']
+
+        newLog = db.Log.insert_one(
+        {
+            "content":content,
+            "time": time
+        })
+
+        newLogId = str(newLog.inserted_id)
+
+        print(newLogId)
+        return {
+            "message": "create log successfully",
+            "content": content,
+            "time": time,
+            "id": newLogId
+        }
+        
+    except APIError as error:
+        return ErrorMapper.mappError(error)
+
+# @app.route('/fans', methods=["PATCH"])
+def updateFan(status: str):
+    try:
+        # data = request.get_json()
+        # newStatus = None if 'status' not in data else data['status']
+
+        # if not(newStatus):
+            # raise BadRequestError("All fields are empty")
+
+        existedFan = db.Fan.find_one(
+            {
+                "fan_id": '1'
+            })
+        
+        if not(existedFan):
+            raise NotFoundError("fan not found")
+        
+        if existedFan:
+            existedFan['status'] = status
+            
+
+            db.Fan.find_one_and_update(
+            {
+                "fan_id": '1'
+            }, 
+            {
+                "$set":{
+                            "status": existedFan['status'],
+                        }
+            })
+
+            return {
+                "message": "update successfully",
+            }
+        
+    except APIError as error:
+        return ErrorMapper.mappError(error)
+
+
 
 
 
@@ -240,6 +324,14 @@ def message(client, feed_id, payload):
     # the new value.
     print('Feed {0} received new value: {1}'.format(feed_id, payload))
     socketio.emit('new_temp', {'message': payload})
+
+    if payload > "30" and db.Fan.find({})[0]["status"] == "off":
+        print('heat hight')
+        requests.post('https://io.adafruit.com/api/v2/lnminhthu1505/feeds/smart-home.fan/data', data = {"value":"1"}, headers = {"X-AIO-Key": "aio_teLx19UtogwB52wolFfreAFt5UVd"})
+        
+        updateFan("on")
+
+        socketio.emit('turn_fan_on', {'message': payload})
 
 # Setup the callback functions defined above.
 client.on_connect    = connected
